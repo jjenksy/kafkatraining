@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: kafka-training
+  cloud:
+    stream:
+      kafka:
+        bindings:
+          input:
+            consumer:
+              autoCommitOffset: false #Whether to autocommit offsets when a message has been processed. If set to false, a header with the key kafka_acknowledgment of the type org.springframework.kafka.support.Acknowledgment header is present in the inbound message. Applications may use this header for acknowledging messages. See the examples section for details. When this property is set to false, Kafka binder sets the ack mode to org.springframework.kafka.listener.AbstractMessageListenerContainer.AckMode.MANUAL and the application is responsible for acknowledging records. Also see ackEachRecord.
+              ackEachRecord: true #When autoCommitOffset is true, this setting dictates whether to commit the offset after each record is processed. By default, offsets are committed after all records in the batch of records returned by consumer.poll() have been processed. The number of records returned by a poll can be controlled with the max.poll.records Kafka property, which is set through the consumer configuration property. Setting this to true may cause a degradation in performance, but doing so reduces the likelihood of redelivered records when a failure occurs. Also, see the binder requiredAcks property, which also affects the performance of committing offsets.
+              configuration:
+                  max.poll.records: 1 #indicates the maximum number of records the consumer can consume during each consumer poll of the topic.
+        binder:
+          minPartitionCount: 3
+          replicationFactor: 3
+        streams:
+          binder:
+            brokers:
+              - localhost:9092
+              - localhost:9093
+              - localhost:9094
+            configuration:
+              default:
+                key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+#                https://kafka.apache.org/21/documentation/streams/developer-guide/config-streams.html#processing-guarantee
+              processing:
+                guarantee: exactly_once
+      bindings:
+        output:
+          destination: partitioned.topic
+          producer:
+            partition-key-expression: headers['partitionKey'] #the expression that describes how data is partitioned
+            partition-count: 12 #the number of partitions
+        input:
+          destination: partitioned.topic
+          group: myGroup
+          consumer:
+            partitioned: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env
+
+logging:
+  level:
+    kafka:
+      server:
+        KafkaConfig: debug
